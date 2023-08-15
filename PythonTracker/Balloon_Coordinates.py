@@ -26,18 +26,24 @@ import requests
 import time
 import sys
 import gps
+import pandas as pd
+import folium
 
-session = gps.gps()
+#session = gps.gps()
 #session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
 #report = session.next()
-
+home_lat = 42.0276
+home_lon = -93.3460
+map = folium.Map(location = [home_lat,home_lon], zoom_start=10)
 
 
 
 class Balloon_Coordinates:
     BOREALIS_EPOCH = 1357023600
     
-    session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
+        
+    
+    #session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
     
 
     def __init__(self, imei):
@@ -78,8 +84,45 @@ class Balloon_Coordinates:
         for imei in data:
                 IMEIs.append(imei)
         return IMEIs
-
+    
+    
+        
+        
+        
     def get_coor_alt(self):
+        
+        #HAR gps tracking code
+        data = pd.read_csv('HAR_GPS.csv', header = None)
+        try:
+            last_row = data.iloc[-1]
+            lat = int(last_row[1]) / 10000000
+            long = int(last_row[2]) / 10000000
+            alt = int(last_row[3]) / 1000
+            pressure = int(last_row[4]) / 100
+            temperature = int(last_row[5]) / 100
+            humidiity = int(last_row[6]) / 1000
+            print(f"lat = {lat}, long = {long}, alt = {alt} meters, pressure = {pressure} Pa, temperature = {temperature} C, humididty = {humidiity} %H")
+            self.coor_alt = [lat,long,alt]
+            #make a map
+            last_cord = data.iloc[-1]
+            lat = int(last_cord[1]) / 10000000
+            long = int(last_cord[2]) / 10000000
+            alt = int(last_cord[3]) / 1000
+            balloon_cord = [lat,long,alt]
+            folium.Marker([lat,long],popup= (lat,long,alt)).add_to(map)
+            map.save('map.html')
+            
+            return self.coor_alt
+            
+        except ValueError:
+            self.coor_alt = None
+            return self.coor_alt
+        # try:
+        #     folium.Marker([lat,long], popup= (lat,long,alt)).add_to(map)
+        #     map.save('map.html')
+        # except ValueError:
+        #     return None
+
         
         '''
         #test gps tracking code
@@ -135,30 +178,30 @@ class Balloon_Coordinates:
         
         # returns a list containing the lat, long, and alt of the latest ping from the selected IMEI
         
-        try:
-            req = requests.get("https://borealis.rci.montana.edu/flight?uid={}".format(self.uid))
-            print("https://borealis.rci.montana.edu/flight?uid={}".format(self.uid))
+        # try:
+        #     req = requests.get("https://borealis.rci.montana.edu/flight?uid={}".format(self.uid))
+        #     print("https://borealis.rci.montana.edu/flight?uid={}".format(self.uid))
             
-
-            if report['class'] == 'TPV' and hasattr(report, 'lat') and hasattr (report, 'lon'):
-                values = [report.lat, report.lon, report.alt]
-                print(values)
+        #     '''
+        #     if report['class'] == 'TPV' and hasattr(report, 'lat') and hasattr (report, 'lon'):
+        #         values = [report.lat, report.lon, report.alt]
+        #         print(values)
             
-            else:
-                values = [0,0,0]
-                
-        except requests.exceptions.RequestException:
-            print("couldn't get updated position (no internet probably)")
-            return []
+        #     else:
+        #         values = [0,0,0]
+        #     '''
+        # except requests.exceptions.RequestException:
+        #     print("couldn't get updated position (no internet probably)")
+        #     return []
 
-        data = req.json()
-        # print(data) # for debugging server problem, will print a lot
+        # data = req.json()
+        # # print(data) # for debugging server problem, will print a lot
 
-        # print(data['data'][-1][3])
+        # # print(data['data'][-1][3])
 
-        # Lat, Long, Alt
-        self.coor_alt = [data['data'][-1][3], data['data'][-1][4], data['data'][-1][5]]
-        print(self.coor_alt)
+        # # Lat, Long, Alt
+        # self.coor_alt = [data['data'][-1][3], data['data'][-1][4], data['data'][-1][5]]
+        # print(self.coor_alt)
         
         
 
